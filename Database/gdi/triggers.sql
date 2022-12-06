@@ -1,0 +1,303 @@
+CREATE OR REPLACE TRIGGER FoneClinicaFK
+  BEFORE INSERT ON FONE_CLINICA
+  FOR EACH ROW
+DECLARE
+  value CLINICA.ID%TYPE;
+BEGIN
+  IF :NEW.ID IS NULL THEN
+    SELECT ID INTO value FROM
+      ( SELECT ID FROM CLINICA
+      ORDER BY dbms_random.value )
+      WHERE rownum = 1;
+
+    :NEW.ID := value;
+  END IF;
+END;
+/
+
+CREATE OR REPLACE TRIGGER FoneFuncionarioFK
+  BEFORE INSERT ON FONE_FUNCIONARIO
+  FOR EACH ROW
+DECLARE
+  value FUNCIONARIO.CPF%TYPE;
+BEGIN
+  IF :NEW.CPF IS NULL THEN
+    SELECT CPF INTO value FROM
+      ( SELECT CPF FROM FUNCIONARIO
+      ORDER BY dbms_random.value )
+      WHERE rownum = 1;
+
+    :NEW.CPF := value;
+  END IF;
+END;
+/
+
+CREATE OR REPLACE TRIGGER FonePacienteFK
+  BEFORE INSERT ON FONE_PACIENTE
+  FOR EACH ROW
+DECLARE
+  value PACIENTE.CPF%TYPE;
+BEGIN
+  IF :NEW.CPF IS NULL THEN
+    SELECT CPF INTO value FROM
+      ( SELECT CPF FROM PACIENTE
+      ORDER BY dbms_random.value )
+      WHERE rownum = 1;
+
+    :NEW.CPF := value;
+  END IF;
+END;
+/
+
+CREATE OR REPLACE TRIGGER EmailFuncionarioFK
+  BEFORE INSERT ON EMAIL_FUNCIONARIO
+  FOR EACH ROW
+DECLARE
+  value FUNCIONARIO.CPF%TYPE;
+BEGIN
+  IF :NEW.CPF IS NULL THEN
+    SELECT CPF INTO value FROM
+      ( SELECT CPF FROM FUNCIONARIO
+      ORDER BY dbms_random.value )
+      WHERE rownum = 1;
+
+    :NEW.CPF := value;
+  END IF;
+END;
+/
+
+CREATE OR REPLACE TRIGGER EmailPacienteFK
+  BEFORE INSERT ON EMAIL_PACIENTE
+  FOR EACH ROW
+DECLARE
+  value PACIENTE.CPF%TYPE;
+BEGIN
+  IF :NEW.CPF IS NULL THEN
+    SELECT CPF INTO value FROM
+      ( SELECT CPF FROM PACIENTE
+      ORDER BY dbms_random.value )
+      WHERE rownum = 1;
+
+    :NEW.CPF := value;
+  END IF;
+END;
+/
+
+CREATE OR REPLACE TRIGGER idFuncionarioFK
+  BEFORE INSERT ON FUNCIONARIO
+  FOR EACH ROW
+DECLARE
+  value CLINICA.ID%TYPE;
+BEGIN
+  IF :NEW.ID_CLINICA IS NULL THEN
+    SELECT ID INTO value FROM
+      ( SELECT ID FROM CLINICA
+      ORDER BY dbms_random.value )
+      WHERE rownum = 1;
+
+    :NEW.ID_CLINICA := value;
+  END IF;
+END;
+/
+
+CREATE OR REPLACE TRIGGER MedicosFK
+  BEFORE INSERT ON MEDICOS
+  FOR EACH ROW
+DECLARE
+  value FUNCIONARIO.CPF%TYPE;
+BEGIN
+  IF :NEW.CPF IS NULL THEN
+    SELECT CPF INTO value 
+    FROM FUNCIONARIO
+    WHERE CPF NOT IN (
+      SELECT CPF 
+      FROM MEDICOS
+    ) AND ROWNUM = 1;
+    :NEW.CPF := value;
+  END IF;
+
+  IF :NEW.SUPERVISOR IS NULL THEN
+    SELECT CPF INTO value FROM
+      ( SELECT CPF FROM MEDICOS
+      ORDER BY dbms_random.value )
+      WHERE rownum = 1;
+    
+    :NEW.SUPERVISOR := value;
+  END IF;
+END;
+/
+
+CREATE OR REPLACE TRIGGER PagaFK
+  BEFORE INSERT ON PAGA_FUNCIONARIO
+  FOR EACH ROW
+DECLARE
+  new_cpf FUNCIONARIO.CPF%TYPE;
+  new_id CLINICA.ID%TYPE;
+BEGIN
+  IF :NEW.CPF IS NULL THEN
+    SELECT CPF INTO new_cpf 
+      FROM FUNCIONARIO
+      WHERE CPF NOT IN (
+        SELECT CPF 
+        FROM PAGA_FUNCIONARIO
+      ) AND ROWNUM = 1;
+
+    :NEW.CPF := new_cpf;
+
+    SELECT ID_CLINICA INTO new_id
+      FROM FUNCIONARIO
+      WHERE CPF = new_cpf;
+
+    :NEW.ID_CLINICA := new_id;
+  END IF;
+END;
+/
+
+CREATE OR REPLACE TRIGGER tipoBeneFK
+  BEFORE INSERT ON TIPO_BENEFICIO
+  FOR EACH ROW
+DECLARE
+  cod BENEFICIO.COD%TYPE;
+BEGIN
+  IF :NEW.COD_BENEFICIO IS NULL THEN
+    SELECT COD INTO cod
+      FROM ( SELECT COD 
+      FROM BENEFICIO
+      ORDER BY dbms_random.value )
+      WHERE rownum = 1;
+
+    :NEW.COD_BENEFICIO := cod;
+  END IF;
+END;
+/
+
+CREATE OR REPLACE TRIGGER FormularioFK
+  BEFORE INSERT ON FORMULARIO
+  FOR EACH ROW
+DECLARE
+  cod AGENDAMENTO.COD%TYPE;
+BEGIN
+  IF :NEW.COD IS NULL THEN
+    SELECT COD INTO cod
+      FROM AGENDAMENTO
+      WHERE COD NOT IN (
+        SELECT COD 
+        FROM FORMULARIO
+      ) AND ROWNUM = 1;
+
+    :NEW.COD := cod;
+  END IF;
+END;
+/
+
+CREATE OR REPLACE PROCEDURE FillTernary IS
+  id CLINICA.ID%TYPE;
+  cnpj EMPRESA_TERCEIRIZADA.CNPJ%TYPE;
+  cod CONTRATO.COD%TYPE; 
+  contagem numeric := 50;
+BEGIN
+  FOR i IN 1..contagem LOOP
+    SELECT ID INTO id FROM
+      ( SELECT ID FROM CLINICA
+      ORDER BY dbms_random.value )
+      WHERE rownum = 1;
+
+    SELECT CNPJ INTO cnpj FROM
+      ( SELECT CNPJ FROM EMPRESA_TERCEIRIZADA
+      ORDER BY dbms_random.value )
+      WHERE rownum = 1;
+
+    SELECT COD INTO cod FROM
+      ( SELECT COD FROM CONTRATO
+      ORDER BY dbms_random.value )
+      WHERE rownum = 1;
+
+    INSERT INTO SERVICO (ID_CLINICA, CNPJ, COD) 
+      VALUES (id, cnpj, cod);
+  END LOOP;
+  DBMS_OUTPUT.PUT_LINE('Adicionado 50 linhas para SERVICO');
+END;
+/
+
+CREATE OR REPLACE PROCEDURE FillAgendamento IS
+  p_cpf PACIENTE.CPF%TYPE;
+  r_cpf RECEPCIONISTA.CPF%TYPE;
+  m_cpf MEDICOS.CPF%TYPE; 
+  contagem numeric := 75;
+BEGIN
+  FOR i IN 1..contagem LOOP
+    SELECT CPF INTO p_cpf FROM
+      ( SELECT CPF FROM PACIENTE
+      ORDER BY dbms_random.value )
+      WHERE rownum = 1;
+
+    SELECT CPF INTO r_cpf FROM
+      ( SELECT CPF FROM RECEPCIONISTA
+      ORDER BY dbms_random.value )
+      WHERE rownum = 1;
+
+    SELECT CPF INTO m_cpf FROM
+      ( SELECT CPF FROM MEDICOS
+      ORDER BY dbms_random.value )
+      WHERE rownum = 1;
+
+    INSERT INTO AGENDAMENTO (CPF_PACIENTE, CPF_RECEPCIONISTA, CPF_MEDICO) 
+      VALUES (p_cpf, r_cpf, m_cpf);
+  END LOOP;
+  DBMS_OUTPUT.PUT_LINE('Adicionado 75 linhas para AGENDAMENTO');
+END;
+/
+
+CREATE OR REPLACE PROCEDURE FillRecep IS
+  new_cpf FUNCIONARIO.CPF%TYPE;
+  new_desc SETOR.DESCRICAO%TYPE;
+  contagem numeric := 30;
+BEGIN
+  FOR i IN 1..contagem LOOP
+    SELECT DESCRICAO INTO new_desc
+      FROM SETOR WHERE DESCRICAO
+      NOT IN (
+        SELECT DESCRICAO
+        FROM RECEPCIONISTA
+      ) AND ROWNUM = 1;
+
+    SELECT CPF INTO new_cpf 
+      FROM FUNCIONARIO
+      WHERE CPF NOT IN (
+        SELECT CPF 
+        FROM MEDICOS
+      ) AND CPF NOT IN (
+        SELECT CPF FROM RECEPCIONISTA
+      ) AND ROWNUM = 1;
+    
+    INSERT INTO RECEPCIONISTA
+      (CPF, DESCRICAO) VALUES
+      (new_cpf, new_desc);
+  END LOOP;
+  DBMS_OUTPUT.PUT_LINE('Adicionado 30 linhas para RECEPCIONISTA');
+END;
+/
+
+CREATE OR REPLACE PROCEDURE FillBeneficio IS
+  new_id BENEFICIO.ID_CLINICA%TYPE;
+  new_cpf BENEFICIO.CPF%TYPE;
+  contagem numeric := 75;
+BEGIN
+  FOR i IN 1..contagem LOOP
+    SELECT CPF INTO new_cpf FROM 
+      ( SELECT CPF FROM PAGA_FUNCIONARIO
+      ORDER BY dbms_random.value )
+    WHERE rownum = 1;
+
+    SELECT ID_CLINICA INTO new_id
+      FROM PAGA_FUNCIONARIO
+    WHERE CPF = new_cpf;
+
+    INSERT INTO BENEFICIO
+      (CPF, ID_CLINICA) VALUES
+      (new_cpf, new_id);
+  END LOOP;
+  DBMS_OUTPUT.PUT_LINE('Adicionado 75 linhas para BENEFICIO');
+END;
+/
+
